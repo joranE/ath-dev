@@ -13,66 +13,26 @@ comparison_grp <- function(top,times,events){
   
   elite <- DATA %>%
     filter(fisid %in% elite_id$fisid & !is.na(fispoints) & type != 'Stage')
-  elite
-}
-
-ath_dev <- function(nms,by_tech = FALSE,elite_sum){
-  if (missing(nms) || length(nms) == 0 || nms == "") return(NULL)
-  if (length(nms) == 1) nms <- c(nms,nms)
-  ath <- filter(DATA,name %in% nms & type != 'Stage' & !is.na(fispoints)) %>% collect()
   
-  if (by_tech){
-    grp <- lapply(c("gender","name","type","tech","age"),as.symbol)
-    pt_rng <- geom_pointrange(aes(x = age_ath_tech,
-                                  y = mid_ath,
-                                  ymin = lower_ath,
-                                  ymax = upper_ath,
-                                  color = tech_ath,
-                                  group = tech_ath))
-    tech_scale <- scale_color_manual(name = "Technique",
-                                     values = tech_colors,
-                                     labels = tech_labels)
-  }else{
-    grp <- lapply(c("gender","name","type","age"),as.symbol)
-    pt_rng <- geom_pointrange(aes(y = mid_ath,ymin = lower_ath,ymax = upper_ath),color = "black")
-    tech_scale <- NULL
-  }
+  #Summary by gender
+  n_gender <- elite %>%
+    collect() %>%
+    group_by(gender) %>%
+    summarise(n = n_distinct(fisid)) %>%
+    magrittr::extract2("n")
   
-  ath_sum <- ath %>%
+  #Summary for FIS plots
+  elite_sum_fis <- elite %>%
     filter(age >= 17 & age <= 35) %>%
-    group_by_(.dots = grp) %>%
+    collect() %>%
+    group_by(gender,type,age) %>% 
     summarise(lower = quantile(fispoints,probs = 0.25,na.rm = TRUE),
               mid = median(fispoints,na.rm = TRUE),
               upper = quantile(fispoints,probs = 0.75,na.rm = TRUE),
               n = n())
-  names(ath_sum) <- paste0(names(ath_sum),"_ath")
-  elite_sum <- elite_sum %>% collect()
-  full_data <- left_join(ath_sum,
-                         elite_sum,
-                         by = c("gender_ath" = "gender",
-                                "type_ath" = "type",
-                                "age_ath" = "age"),
-                         copy = TRUE)
-  if (by_tech){
-    full_data$age_ath_tech <- full_data$age_ath + 
-      c('C' = -0.1,'F' = 0,'FC' = 0.1)[full_data$tech_ath]
-  }
-  ggplot(full_data,aes(x = age_ath)) +
-    facet_grid(name_ath~type_ath,scales = "free_y") +
-    geom_ribbon(aes(ymin = lower,ymax = upper),alpha = 0.25) + 
-    geom_line(aes(y = mid),color = "blue") + 
-    pt_rng + 
-    tech_scale +
-    labs(x = "Age",y = "FIS Points") + 
-    theme(legend.position = "bottom",
-          legend.direction = "horizontal")
   
-}
-
-ath_dev1 <- function(nms,type,elite){
-  if (missing(nms) || length(nms) == 0 || nms == "") return(NULL)
-  if (length(nms) == 1) nms <- c(nms,nms)
-  dat_all <- elite %>% 
+  #Summary for start plots
+  elite_sum_start <- elite %>% 
     collect() %>%
     group_by(gender,type,name,age) %>% 
     summarise(maj_starts = sum(cat1 %in% MAJ_INT),
@@ -86,11 +46,31 @@ ath_dev1 <- function(nms,type,elite){
               start_quality_hi = quantile(start_quality,0.75,na.rm = TRUE)) %>%
     filter(age >= 17 & age <= 35)
   
-  dat <- filter(DATA,name %in% nms & 
-                  type != 'Stage' &
-                  age >= 17 &
-                  age <= 35) %>%
-    collect() %>%
+  return(list(elite_sum_fis = elite_sum_fis,elite_sum_start = elite_sum_start,n_gender = n_gender))
+}
+
+ath_data <- function(nms,by_tech = FALSE){
+  if (missing(nms) || length(nms) == 0 || nms == "") return(NULL)
+  if (length(nms) == 1) nms <- c(nms,nms)
+  
+  ath <- filter(DATA,name %in% nms & type != "Stage") %>% collect()
+  
+  if (by_tech){
+    grp <- lapply(c("gender","name","type","tech","age"),as.symbol)
+  }else{
+    grp <- lapply(c("gender","name","type","age"),as.symbol)
+  }
+  
+  ath_sum_fis <- ath %>%
+    filter(age >= 17 & age <= 35) %>%
+    group_by_(.dots = grp) %>%
+    summarise(lower = quantile(fispoints,probs = 0.25,na.rm = TRUE),
+              mid = median(fispoints,na.rm = TRUE),
+              upper = quantile(fispoints,probs = 0.75,na.rm = TRUE),
+              n = n())
+  names(ath_sum_fis) <- paste0(names(ath_sum_fis),"_ath")
+  
+  ath_sum_start <- filter(ath,age >= 17 & age <= 35) %>%
     group_by(gender,type,name,age) %>% 
     summarise(maj_starts_ath = sum(cat1 %in% MAJ_INT),
               start_quality_low_ath = quantile(penalty,0.25,na.rm = TRUE),
@@ -98,9 +78,59 @@ ath_dev1 <- function(nms,type,elite){
               start_quality_hi_ath = quantile(penalty,0.75,na.rm = TRUE),
               n = n_distinct(raceid))
   
-  res <- left_join(dat,dat_all)
+  return(list(ath_sum_fis = ath_sum_fis,
+              ath_sum_start = ath_sum_start))
   
-  if (type == 'quality'){
+}
+
+ath_dev_fis <- function(ath_sum_fis,
+                        elite_sum_fis,
+                        by_tech = FALSE){
+  if (nrow(ath_sum_fis) == 0) return(NULL)
+  elite_sum_fis <- elite_sum_fis %>% collect()
+  full_data <- left_join(ath_sum_fis,
+                         elite_sum_fis,
+                         by = c("gender_ath" = "gender",
+                                "type_ath" = "type",
+                                "age_ath" = "age"),
+                         copy = TRUE)
+  if (by_tech){
+    full_data$age_ath_tech <- full_data$age_ath + 
+      c('C' = -0.1,'F' = 0,'FC' = 0.1)[full_data$tech_ath]
+    pt_rng <- geom_pointrange(aes(x = age_ath_tech,
+                                  y = mid_ath,
+                                  ymin = lower_ath,
+                                  ymax = upper_ath,
+                                  color = tech_ath,
+                                  group = tech_ath))
+    tech_scale <- scale_color_manual(name = "Technique",
+                                     values = tech_colors,
+                                     labels = tech_labels)
+  }else{
+    pt_rng <- geom_pointrange(aes(y = mid_ath,ymin = lower_ath,ymax = upper_ath),color = "black")
+    tech_scale <- NULL
+  }
+  ggplot(full_data,aes(x = age_ath)) +
+    facet_grid(name_ath~type_ath,scales = "free_y") +
+    geom_ribbon(aes(ymin = lower,ymax = upper),alpha = 0.25) + 
+    geom_line(aes(y = mid),color = "blue") + 
+    pt_rng + 
+    tech_scale +
+    labs(x = "Age",y = "FIS Points") + 
+    theme(legend.position = "bottom",
+          legend.direction = "horizontal")
+  
+}
+
+ath_dev_start <- function(ath_sum_start,
+                          elite_sum_start,
+                          type = c("quality","starts")){
+  #if (nrow(ath_sum_start) == 0) return(NULL)
+  res <- left_join(ath_sum_start,
+                   elite_sum_start,
+                   by = c("gender","type","age"))
+  
+  if (type == "quality"){
     p1 <- ggplot(res) + 
       facet_grid(name~type) + 
       geom_ribbon(aes(x = age,

@@ -13,36 +13,28 @@ shinyServer(function(input, output) {
                    events = input$events)
   })
   
-  elite_sum <- reactive({
-    elite() %>%
-      collect() %>%
-      filter(age >= 17 & age <= 35) %>%
-      group_by(gender,type,age) %>% 
-      summarise(lower = quantile(fispoints,probs = 0.25,na.rm = TRUE),
-                mid = median(fispoints,na.rm = TRUE),
-                upper = quantile(fispoints,probs = 0.75,na.rm = TRUE),
-                n = n())})
+  ath <- reactive({
+    ath_data(nms = input$nameInput,by_tech = input$by_tech)
+  })
   
   output$comp_grp_n <- renderText({
-    n_gender <- elite() %>% 
-      collect() %>%
-      group_by(gender) %>%
-      summarise(n = n_distinct(fisid)) %>%
-      magrittr::extract2("n")
     paste("Comparison group currently contains <b>",
-          n_gender[1],"</b>men and <b>",n_gender[2],"</b>women.")
+          elite()$n_gender[1],"</b>men and <b>",elite()$n_gender[2],"</b>women.")
   })
   
   output$plot1 <- renderPlot({
-    ath_dev(input$nameInput,input$by_tech,elite_sum())
+    if (is.null(ath())) NULL
+    else ath_dev_fis(ath()$ath_sum_fis,elite()$elite_sum_fis,input$by_tech)
   })
   
   output$plot2 <- renderPlot({
-    ath_dev1(input$nameInput,"quality",elite())
+    if (is.null(ath())) NULL
+    else ath_dev_start(ath()$ath_sum_start,elite()$elite_sum_start,"quality")
   })
   
   output$plot3 <- renderPlot({
-    ath_dev1(input$nameInput,"starts",elite())
+    if (is.null(ath())) NULL
+    else ath_dev_start(ath()$ath_sum_start,elite()$elite_sum_start,"starts")
   })
 
 })
