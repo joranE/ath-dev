@@ -4,6 +4,7 @@ tech_colors <- setNames(tech_colors,c("C","F","FC"))
 tech_labels <- c("Classic","Freestyle","Pursuit")
 
 comparison_grp <- function(top,times,events){
+  if (length(events == 1)) events <- c(events,events)
   elite_id <- DATA %>%
     filter(cat1 %in% events & rank <= top) %>%
     group_by(fisid) %>%
