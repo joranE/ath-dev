@@ -13,7 +13,9 @@ comparison_grp <- function(top,times,events){
     collect()
   
   elite <- DATA %>%
-    filter(fisid %in% elite_id$fisid & !is.na(fispoints) & type != 'Stage')
+    filter(fisid %in% elite_id$fisid & !is.na(fispoints) & type != 'Stage') %>%
+    collect() %>%
+    left_join(PENALTY,by = "raceid")
   
   #Summary by gender
   n_gender <- elite %>%
@@ -54,7 +56,9 @@ ath_data <- function(nms,by_tech = FALSE){
   if (missing(nms) || length(nms) == 0 || nms == "") return(NULL)
   if (length(nms) == 1) nms <- c(nms,nms)
   
-  ath <- filter(DATA,name %in% nms & type != "Stage") %>% collect()
+  ath <- filter(DATA,name %in% nms & type != "Stage") %>% 
+    collect() %>%
+    left_join(PENALTY,by = "raceid")
   
   if (by_tech){
     grp <- lapply(c("gender","name","type","tech","age"),as.symbol)
