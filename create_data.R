@@ -1,7 +1,7 @@
-# library(statskier)
+# library(statskier2)
 # library(dplyr)
-# con <- db_xc()
-# x <- statskier::query(con,"select * from main")
+# conl <- db_xc_local()
+# x <- statskier2::ss_query(conl,"select * from main")
 # x <- x %>%
 #   group_by(raceid) %>%
 #   mutate(penalty = min(fispoints,na.rm = TRUE)) %>%
