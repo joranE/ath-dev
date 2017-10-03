@@ -14,8 +14,8 @@ comparison_grp <- function(top,times,events){
   
   elite <- DATA %>%
     filter(fisid %in% elite_id$fisid & !is.na(fispoints) & type != 'Stage') %>%
-    collect() %>%
-    left_join(PENALTY,by = "raceid")
+    collect() 
+    #left_join(PENALTY,by = "raceid")
   
   #Summary by gender
   n_gender <- elite %>%
@@ -57,8 +57,8 @@ ath_data <- function(nms,by_tech = FALSE){
   if (length(nms) == 1) nms <- c(nms,nms)
   
   ath <- filter(DATA,name %in% nms & type != "Stage") %>% 
-    collect() %>%
-    left_join(PENALTY,by = "raceid")
+    collect() 
+    #left_join(PENALTY,by = "raceid")
   
   if (by_tech){
     grp <- lapply(c("gender","name","type","tech","age"),as.symbol)
@@ -72,7 +72,8 @@ ath_data <- function(nms,by_tech = FALSE){
     summarise(lower = quantile(fispoints,probs = 0.25,na.rm = TRUE),
               mid = median(fispoints,na.rm = TRUE),
               upper = quantile(fispoints,probs = 0.75,na.rm = TRUE),
-              n = n())
+              n = n()) %>%
+    ungroup()
   names(ath_sum_fis) <- paste0(names(ath_sum_fis),"_ath")
   
   ath_sum_start <- filter(ath,age >= 17 & age <= 35) %>%
@@ -81,7 +82,8 @@ ath_data <- function(nms,by_tech = FALSE){
               start_quality_low_ath = quantile(penalty,0.25,na.rm = TRUE),
               start_quality_mid_ath = quantile(penalty,0.5,na.rm = TRUE),
               start_quality_hi_ath = quantile(penalty,0.75,na.rm = TRUE),
-              n = n_distinct(raceid))
+              n = n_distinct(raceid)) %>%
+    ungroup()
   
   return(list(ath_sum_fis = ath_sum_fis,
               ath_sum_start = ath_sum_start))
