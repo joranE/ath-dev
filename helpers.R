@@ -114,7 +114,10 @@ ath_dev_fis <- function(ath_sum_fis,
                                      values = tech_colors,
                                      labels = tech_labels)
   }else{
-    pt_rng <- geom_pointrange(aes(y = mid_ath,ymin = lower_ath,ymax = upper_ath),color = "black")
+    pt_rng <- geom_pointrange(aes(y = mid_ath,
+                                  ymin = lower_ath,
+                                  ymax = upper_ath),
+                              color = "black")
     tech_scale <- NULL
   }
   ggplot(full_data,aes(x = age_ath)) +
@@ -123,6 +126,7 @@ ath_dev_fis <- function(ath_sum_fis,
     geom_line(aes(y = mid),color = "blue") + 
     pt_rng + 
     tech_scale +
+    ggtitle(label = "Result by age relative to comparison group") +
     labs(x = "Age",y = "FIS Points") + 
     theme(legend.position = "bottom",
           legend.direction = "horizontal")
@@ -149,7 +153,9 @@ ath_dev_start <- function(ath_sum_start,
                           y = start_quality_mid_ath,
                           ymin = start_quality_low_ath,
                           ymax = start_quality_hi_ath),color = "red") + 
-      labs(x = "Age",y = "Start Quality (FIS Point Penalty)")
+      labs(x = "Age",y = "Start Quality (FIS Point Penalty)") + 
+      ggtitle(label = "Start quality by age relative to comparison group",
+              subtitle = "Quality is approximated by race penalty")
     return(p1)
   }
   if (type == "starts"){
@@ -158,7 +164,8 @@ ath_dev_start <- function(ath_sum_start,
       geom_ribbon(aes(ymin = maj_starts_low,ymax = maj_starts_hi),alpha = 0.25) + 
       geom_line(aes(y = maj_starts_mid)) + 
       geom_line(aes(y = maj_starts_ath),color = "red") + 
-      labs(x = "Age",y = "Major Int Starts")
+      labs(x = "Age",y = "Major Int Starts") + 
+      ggtitle(label = "Number of major international starts by\nage relative to comparison group")
     return(p2)
   }
 }
